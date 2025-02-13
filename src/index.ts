@@ -1,20 +1,40 @@
-// import type { Core } from '@strapi/strapi';
+// src/index.js
+'use strict';
 
-export default {
+module.exports = {
   /**
    * An asynchronous register function that runs before
    * your application is initialized.
-   *
-   * This gives you an opportunity to extend code.
    */
-  register(/* { strapi }: { strapi: Core.Strapi } */) {},
+  register({ strapi }) {
+    // Add socket.io to the Strapi server
+    const io = require('socket.io')(strapi.server.httpServer, {
+      cors: strapi.config.get('server.socketConfig.cors')
+    });
+
+    // Store the io instance in strapi
+    strapi.io = io;
+  },
 
   /**
    * An asynchronous bootstrap function that runs before
    * your application gets started.
-   *
-   * This gives you an opportunity to set up your data model,
-   * run jobs, or perform some special logic.
    */
-  bootstrap(/* { strapi }: { strapi: Core.Strapi } */) {},
+  bootstrap({ strapi }) {
+    strapi.io.on('connection', (socket) => {
+      console.log('a user connected');
+
+      socket.on('chat message', (msg) => {
+        console.log('message:', msg);
+        // Broadcast to all connected clients
+        strapi.io.emit('chat message', msg);
+      });
+
+      socket.on('disconnect', () => {
+        console.log('user disconnected');
+      });
+    });
+  },
+
+  
 };
